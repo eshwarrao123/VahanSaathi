@@ -1,0 +1,97 @@
+datasource db {
+  provider = "sqlite"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id        String    @id @default(uuid())
+  sessionId String    @unique
+  createdAt DateTime  @default(now())
+  journeys  Journey[]
+}
+
+model Journey {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  currentScreen String   @default("landing")
+  userRole      String?  // "buyer" | "seller"
+  situationText String?  // Citizen free text
+  answersJson   String   @default("{}") // Question answers JSON
+  case          Case?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Case {
+  id                   String        @id @default(uuid())
+  journeyId            String        @unique
+  journey              Journey       @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+  caseNumber           String        @unique // e.g. "VS-DEMO-1042"
+  title                String
+  role                 String        // "buyer" | "seller"
+  transaction          String        @default("sale")
+  registrationNumber   String?
+  originState          String
+  destinationState     String
+  activeLoan           Boolean       @default(false)
+  hasRC                Boolean       @default(true)
+  saleCompleted        Boolean       @default(true)
+  isLongTermRelocation Boolean       @default(true)
+  status               String        @default("EVALUATED") // DRAFT, EVALUATED, SUBMITTED, COMPLETED
+  sellerName           String?
+  buyerName            String?
+  vehicleModel         String?
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+  roadmapSteps         RoadmapStep[]
+  documents            Document[]
+  statusEvents         StatusEvent[]
+}
+
+model RoadmapStep {
+  id                String   @id @default(uuid())
+  caseId            String
+  case              Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  stepNumber        Int
+  title             String
+  description       String
+  responsibility    String   // "seller" | "buyer" | "joint"
+  status            String   // "pending" | "in_progress" | "action_required" | "completed"
+  officialRtoAction String
+  legalBasis        String
+  isConditional     Boolean  @default(false)
+  conditionalReason String?
+  notesJson         String   @default("[]") // Serialized JSON array of notes
+  estimatedDays     Int?
+  createdAt         DateTime @default(now())
+}
+
+model Document {
+  id          String   @id @default(uuid())
+  caseId      String
+  case        Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  code        String   // "FORM_28", "FORM_29", "FORM_30", "FORM_35", "FORM_27", "FORM_26"
+  title       String
+  description String
+  status      String   @default("NOT_READY") // "NOT_READY", "READY", "CHECKED"
+  isMandatory Boolean  @default(true)
+  issuedBy    String?
+  legalBasis  String?
+  isSynthetic Boolean  @default(true)
+  createdAt   DateTime @default(now())
+}
+
+model StatusEvent {
+  id          String   @id @default(uuid())
+  caseId      String
+  case        Case     @relation(fields: [caseId], references: [id], onDelete: Cascade)
+  title       String
+  description String
+  type        String   // "info" | "action_required" | "milestone"
+  actor       String   // "CITIZEN", "SYSTEM", "MOCK_VAHAN"
+  timestamp   DateTime @default(now())
+}

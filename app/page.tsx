@@ -104,7 +104,7 @@ export default function Home() {
   const [journey, setJourney] = useState<Journey | null>(null);
   const [selectedStep, setSelectedStep] = useState<RoadmapStep | null>(null);
   const [caseId, setCaseId] = useState<string>('');
-  
+
   // UX State: Loading & Recoverable Error
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -128,7 +128,7 @@ export default function Home() {
   } | null>(null);
   const [isLoadingAiSummary, setIsLoadingAiSummary] = useState(false);
 
-  // Restore persistent journey from database on initial page load / refresh
+  // Restore persistent journey from database on initial page after load / refresh
   useEffect(() => {
     async function restoreSession() {
       const storedId = getStoredJourneyId();
@@ -266,7 +266,7 @@ export default function Home() {
     if (currentQuestionIndex < GUIDED_QUESTIONS.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
       if (journeyId) {
-        updateJourneyApi(journeyId, { answers: updatedAnswers }).catch(() => {});
+        updateJourneyApi(journeyId, { answers: updatedAnswers }).catch(() => { });
       }
     } else {
       setIsLoading(true);

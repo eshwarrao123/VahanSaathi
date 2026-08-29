@@ -40,7 +40,7 @@ export function CaseSummaryScreen({
           <div>
             <div className="text-xs font-medium text-slate-500 mb-1">Transfer Route</div>
             <div className="text-base font-semibold text-slate-900">
-              {vehicleCase.originState} → {vehicleCase.destinationState} ({vehicleCase.originState !== vehicleCase.destinationState ? 'Interstate' : 'Same State'})
+              {vehicleCase.originState || 'Unknown'} → {vehicleCase.destinationState || 'Unknown'} ({vehicleCase.originState && vehicleCase.destinationState && vehicleCase.originState !== vehicleCase.destinationState ? 'Interstate' : 'State Transfer'})
             </div>
           </div>
 

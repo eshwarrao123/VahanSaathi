@@ -13,12 +13,19 @@ interface StatusScreenProps {
 export function StatusScreen({ caseId, journey, onBackToRoadmap, onStartOver, onSimulateSubmission }: StatusScreenProps) {
   const isSubmitted = journey?.case?.id && journey.statusEvents?.some(e => e.title.includes('Submission'));
 
+  const getRouteDisplay = () => {
+    if (journey?.case?.originState && journey?.case?.destinationState) {
+      return `${journey.case.originState} → ${journey.case.destinationState}`;
+    }
+    return 'your interstate case';
+  };
+
   const statusItems = [
-    { label: 'Situation Understood', detail: 'Case attributes analyzed', completed: true },
-    { label: 'Statutory Roadmap Generated', detail: 'Evaluated against MVA 1988 & CMVR 1989', completed: true },
-    { label: 'Documents Checklist Ready', detail: `${journey?.allRequiredDocuments.length || 0} statutory documents identified`, completed: true },
-    { label: 'Demo Government Submission', detail: isSubmitted ? 'Demo submission simulated' : 'Pending citizen submission action', active: !isSubmitted, completed: !!isSubmitted },
-    { label: 'RTO Transfer Endorsement', detail: isSubmitted ? 'Intimation recorded in database' : 'Pending', completed: false },
+    { label: 'Your situation understood', detail: 'Details analyzed and confirmed', completed: true },
+    { label: 'Transfer plan created', detail: `Verified against Motor Vehicles Act requirements`, completed: true },
+    { label: 'Document checklist ready', detail: `${journey?.allRequiredDocuments.length || 0} required documents identified`, completed: true },
+    { label: 'Mock government submission', detail: isSubmitted ? 'Demo submission completed' : 'Ready when you are', active: !isSubmitted, completed: !!isSubmitted },
+    { label: 'RTO processing', detail: isSubmitted ? 'Awaiting RTO action' : 'Not started', completed: false },
   ];
 
   return (
@@ -29,19 +36,22 @@ export function StatusScreen({ caseId, journey, onBackToRoadmap, onStartOver, on
       className="space-y-6"
     >
       <div className="space-y-2">
-        <h2 className="text-2xl font-semibold text-slate-900">Case transfer status</h2>
+        <h2 className="text-2xl font-semibold text-slate-900">Where you are</h2>
         {caseId && (
           <div className="text-sm text-slate-600">
-            Case Reference ID: <span className="font-mono font-semibold text-slate-900">{caseId}</span>
+            Case reference: <span className="font-mono font-semibold text-slate-900">{caseId}</span>
           </div>
         )}
+        <p className="text-sm text-slate-600">
+          Your transfer roadmap for {getRouteDisplay()}
+        </p>
       </div>
 
-      {/* Persistent Status Audit Timeline */}
+      {/* Activity Timeline */}
       {journey?.statusEvents && journey.statusEvents.length > 0 && (
         <div className="p-4 bg-white border border-slate-200 rounded-lg space-y-3">
           <div className="text-xs font-semibold text-slate-700 uppercase tracking-wider">
-            Persistent System & Case Events
+            Activity timeline
           </div>
           <div className="space-y-2.5">
             {journey.statusEvents.map((evt) => (

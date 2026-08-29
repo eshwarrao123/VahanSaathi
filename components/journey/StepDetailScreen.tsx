@@ -102,17 +102,17 @@ export function StepDetailScreen({ step, onAskWhy, onBack }: StepDetailScreenPro
           {aiHelp && (
             <div className="p-4 bg-slate-900 text-white rounded-lg space-y-2.5 border border-slate-800 shadow-sm">
               <div className="flex items-center justify-between text-[10px] font-semibold uppercase tracking-wider text-slate-300">
-                <span>Plain-Language AI Guidance</span>
+                <span>Why this matters</span>
                 {aiHelp.isFallback && (
                   <span className="text-amber-400 bg-slate-800 px-1.5 py-0.5 rounded">
-                    Verified Statutory Explanation
+                    Based on your situation
                   </span>
                 )}
               </div>
               <p className="text-xs leading-relaxed text-slate-100">{aiHelp.explanation}</p>
               {aiHelp.practicalTip && (
                 <div className="p-2 bg-slate-800 rounded border border-slate-700 text-xs text-slate-200">
-                  <span className="font-semibold text-white block mb-0.5">Practical Action Tip:</span>
+                  <span className="font-semibold text-white block mb-0.5">Action tip:</span>
                   {aiHelp.practicalTip}
                 </div>
               )}
@@ -124,21 +124,30 @@ export function StepDetailScreen({ step, onAskWhy, onBack }: StepDetailScreenPro
         </div>
 
         <div>
-          <h3 className="text-sm font-semibold text-slate-700 mb-1">What do I need to do?</h3>
+          <h3 className="text-sm font-semibold text-slate-700 mb-1">
+            {step.responsibility === 'seller' || step.responsibility === 'buyer' ? 'What you need to do' : 'What to do'}
+          </h3>
           <p className="text-sm text-slate-600 leading-relaxed">
             {step.description}
           </p>
         </div>
 
         <div>
-          <h3 className="text-sm font-semibold text-slate-700 mb-1">Who is responsible?</h3>
-          <Badge status="action_required">
-            {step.responsibility.toUpperCase()}
-          </Badge>
+          <h3 className="text-sm font-semibold text-slate-700 mb-1">Who handles this</h3>
+          <div className="flex items-center gap-2">
+            <Badge status={step.responsibility === 'seller' || step.responsibility === 'buyer' ? 'action_required' : 'pending'}>
+              {step.responsibility.toUpperCase()}
+            </Badge>
+            <span className="text-xs text-slate-500">
+              {step.responsibility === 'seller' ? '(What you need to do)' : 
+               step.responsibility === 'buyer' ? '(What the buyer needs to do)' : 
+               '(What happens on their side)'}
+            </span>
+          </div>
         </div>
 
         <div>
-          <h3 className="text-sm font-semibold text-slate-700 mb-1">Official RTO Action</h3>
+          <h3 className="text-sm font-semibold text-slate-700 mb-1">What the RTO does</h3>
           <p className="text-sm text-slate-600 leading-relaxed">
             {step.officialRtoAction}
           </p>
@@ -154,22 +163,34 @@ export function StepDetailScreen({ step, onAskWhy, onBack }: StepDetailScreenPro
         )}
 
         <div>
-          <h3 className="text-sm font-semibold text-slate-700 mb-2">Required Documents & Forms</h3>
+          <h3 className="text-sm font-semibold text-slate-700 mb-2">Required documents</h3>
           <div className="space-y-3">
             {step.requiredDocuments.map((doc) => (
-              <div key={doc.id} className="p-3 bg-white border border-slate-200 rounded-lg text-sm space-y-1">
-                <div className="font-semibold text-slate-900 flex items-center justify-between">
-                  <span>{doc.title}</span>
+              <div key={doc.id} className="p-3 bg-white border border-slate-200 rounded-lg text-sm space-y-1.5">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1">
+                    <div className="font-semibold text-slate-900">
+                      {doc.title.split('—')[0].trim()}
+                    </div>
+                    {doc.title.includes('—') && (
+                      <div className="text-xs text-slate-500 mt-0.5">
+                        Official form: {doc.title.split('—')[1].trim()}
+                      </div>
+                    )}
+                  </div>
                   {doc.isMandatory ? (
-                    <span className="text-[10px] bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded font-mono">Required</span>
+                    <span className="text-[10px] bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded font-mono flex-shrink-0">Required</span>
                   ) : (
-                    <span className="text-[10px] bg-amber-50 text-amber-800 px-1.5 py-0.5 rounded font-mono">Conditional</span>
+                    <span className="text-[10px] bg-amber-50 text-amber-800 px-1.5 py-0.5 rounded font-mono flex-shrink-0">If applicable</span>
                   )}
                 </div>
-                <p className="text-xs text-slate-600 leading-relaxed">{doc.description}</p>
+                <div className="pt-1">
+                  <div className="text-xs font-medium text-slate-700 mb-0.5">Why this matters:</div>
+                  <p className="text-xs text-slate-600 leading-relaxed">{doc.description}</p>
+                </div>
                 {doc.legalBasis && (
-                  <div className="text-[11px] text-slate-500 italic pt-0.5">
-                    Basis: {doc.legalBasis}
+                  <div className="text-[11px] text-slate-500 italic pt-1 border-t border-slate-100">
+                    Legal basis: {doc.legalBasis}
                   </div>
                 )}
               </div>

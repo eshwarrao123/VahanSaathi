@@ -73,16 +73,16 @@ export function RoadmapScreen({
       {aiSummary && !isLoadingAiSummary && (
         <div className="p-4 bg-slate-900 text-white rounded-lg space-y-2.5 shadow-sm border border-slate-800">
           <div className="flex items-center justify-between text-[11px] font-semibold tracking-wider text-slate-300 uppercase">
-            <span>AI Plain-Language Summary</span>
+            <span>Your plan</span>
             {aiSummary.isFallback && (
               <span className="text-[10px] text-amber-400 bg-slate-800 px-1.5 py-0.5 rounded">
-                Verified Engine Summary
+                Based on your situation
               </span>
             )}
           </div>
           <p className="text-xs leading-relaxed text-slate-100">{aiSummary.summary}</p>
           <div className="p-2.5 bg-slate-800/80 rounded border border-slate-700/60 text-xs text-slate-200">
-            <span className="font-semibold text-white block mb-0.5">Priority Takeaway:</span>
+            <span className="font-semibold text-white block mb-0.5">What&apos;s next:</span>
             {aiSummary.keyTakeaway}
           </div>
           <p className="text-[10px] text-slate-400 italic">

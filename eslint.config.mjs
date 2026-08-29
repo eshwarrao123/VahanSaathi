@@ -12,6 +12,15 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Tooling and agent directories:
+    ".agent/**",
+    ".agents/**",
+    ".codex/**",
+    ".cursor/**",
+    ".gemini/**",
+    ".opencode/**",
+    ".claude/**",
+    "scratch/**",
   ]),
 ]);
 

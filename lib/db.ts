@@ -1,26 +1,15 @@
 import { PrismaClient } from '@prisma/client';
-import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
-import path from 'path';
+import { PrismaPg } from '@prisma/adapter-pg';
 
 const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
 function createPrismaClient() {
-  const dbUrl = process.env.DATABASE_URL || 'file:./dev.db';
-
-  // If using PostgreSQL (production DB environment)
-  if (dbUrl.startsWith('postgres://') || dbUrl.startsWith('postgresql://')) {
-    return new PrismaClient();
-  }
-
-  // SQLite adapter for local development
-  let dbPath = dbUrl.replace(/^file:/, '');
-  if (!path.isAbsolute(dbPath)) {
-    dbPath = path.join(/*turbopackIgnore: true*/ process.cwd(), dbPath);
-  }
-
-  const adapter = new PrismaBetterSqlite3({ url: dbPath });
+  const connectionString =
+    process.env.DATABASE_URL ||
+    'postgresql://postgres:postgres@localhost:5432/vahansaathi?schema=public';
+  const adapter = new PrismaPg({ connectionString });
   return new PrismaClient({ adapter });
 }
 

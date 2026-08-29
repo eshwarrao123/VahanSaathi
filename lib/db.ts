@@ -8,13 +8,19 @@ const globalForPrisma = globalThis as unknown as {
 
 function createPrismaClient() {
   const dbUrl = process.env.DATABASE_URL || 'file:./dev.db';
+
+  // If using PostgreSQL (production DB environment)
+  if (dbUrl.startsWith('postgres://') || dbUrl.startsWith('postgresql://')) {
+    return new PrismaClient();
+  }
+
+  // SQLite adapter for local development
   let dbPath = dbUrl.replace(/^file:/, '');
   if (!path.isAbsolute(dbPath)) {
-    dbPath = path.join(process.cwd(), dbPath);
+    dbPath = path.join(/*turbopackIgnore: true*/ process.cwd(), dbPath);
   }
 
   const adapter = new PrismaBetterSqlite3({ url: dbPath });
-
   return new PrismaClient({ adapter });
 }
 

@@ -1,36 +1,113 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# VahanSaathi
 
-## Getting Started
+> **"Tell us what happened. We'll tell you what to do next."**
 
-First, run the development server:
+VahanSaathi is an independent citizen guidance and process-understanding layer built around Parivahan/VAHAN vehicle ownership transfer workflows in India. It converts confusing statutory requirements into a clear, step-by-step personalized roadmap for citizens buying or selling used vehicles.
 
+---
+
+##  Product Overview
+
+### Problem
+Used-vehicle ownership transfer in India—especially interstate sales (e.g. Telangana to Karnataka)—is notoriously complex. Citizens struggle to understand required NOCs (Form 28), ownership transfer forms (Form 29/30), bank hypothecation cancellations (Form 35), state tax re-assessments, and who bears responsibility at each stage.
+
+### Solution
+1. **Natural Language Input**: The citizen describes their situation in plain words (e.g., *"I sold my Telangana car to someone in Karnataka"*).
+2. **Deterministic Statutory Rules Engine**: Authoritative statutory rules evaluate the facts, apply Motor Vehicles Act (1988) & CMVR rules, and construct a personalized roadmap.
+3. **AI Guidance Layer**: Server-side OpenAI models explain complex legal rules in plain language, summarize roadmaps, and answer contextual *"Why do I need this step?"* questions.
+
+---
+
+##  AI Role & Safety Guardrails
+
+- **AI Moments**:
+  1. **Situation Interpretation** (`/api/ai/interpret`): Extracts key facts (role, origin state, destination state, vehicle model) into structured data with zero hallucination.
+  2. **Roadmap Explanation** (`/api/ai/explain-roadmap`): Generates plain-language executive summaries of the generated statutory roadmap.
+  3. **Contextual Step Explanation** (`/api/ai/explain-step`): Answers *"Why do I need this step?"* using only verified statutory context, backed by server-side and client-side caching.
+
+- **Authoritative Rules Engine**: The deterministic Motor Vehicles Act rules engine remains 100% authoritative for step sequencing, mandatory forms, and legal bases. AI never invents statutory requirements or vehicle data.
+- **Zod Schema Validation**: All AI responses undergo runtime Zod schema validation; invalid or malformed responses immediately trigger a graceful deterministic fallback.
+
+---
+
+##  Safety & Hackathon Disclaimers
+
+- **Independent Prototype**: VahanSaathi is an independent hackathon prototype. It is NOT an official government service and is not affiliated with Parivahan, VAHAN, or the Ministry of Road Transport and Highways (MoRTH).
+- **Simulated Integration**: All government interactions (submission, status tracking) are simulated locally.
+- **Synthetic Data**: All demo cases, chassis numbers, registration details, and names are synthetic.
+- **No Real Transactions**: Does NOT request or collect real OTPs, real payments, real identity documents, or real government credentials.
+
+---
+
+  ##  Architecture & Tech Stack
+
+- **Framework**: Next.js 16 (App Router, Server Actions, API Routes)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS + Vanilla CSS Design Tokens
+- **Animations**: Framer Motion
+- **Database & ORM**: Prisma ORM
+  - **Local Development**: SQLite (`dev.db`)
+  - **Production Deployment**: PostgreSQL (`DATABASE_URL`)
+- **Validation**: Zod
+- **AI Integration**: OpenAI Node SDK (`gpt-4o-mini`)
+
+---
+
+##  Local Setup & Installation
+
+### Prerequisites
+- Node.js 18+ or 20+
+- npm or yarn
+
+### 1. Clone & Install Dependencies
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2. Configure Environment Variables
+Copy `.env.example` to `.env.local`:
+```bash
+cp .env.example .env.local
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Edit `.env.local` to provide your configuration:
+```env
+# Required: Server-side OpenAI API key (NEVER expose to client)
+OPENAI_API_KEY="sk-your-openai-api-key-here"
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# Local Database URL (SQLite)
+DATABASE_URL="file:./dev.db"
 
-## Learn More
+# Optional: AI Model Configuration (default: gpt-4o-mini)
+OPENAI_MODEL="gpt-4o-mini"
+```
 
-To learn more about Next.js, take a look at the following resources:
+### 3. Initialize Local Database
+```bash
+npx prisma db push
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### 4. Start Development Server
+```bash
+npm run dev
+```
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+---
 
-## Deploy on Vercel
+##  Production Deployment Plan
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- **Database**: Configure `DATABASE_URL` pointing to a PostgreSQL instance (e.g. Supabase, Neon, Render PostgreSQL). Prisma seamlessly switches engine configuration based on connection string scheme (`postgres://` vs `file:`).
+- **Environment Secrets**: Set `OPENAI_API_KEY` and `DATABASE_URL` in your hosting platform's environment variables settings (e.g., Vercel, Railway, Render). `OPENAI_API_KEY` is server-only and never exposed to the client bundle.
+- **Build & Check**:
+```bash
+npx tsc --noEmit
+npm run lint
+npm run build
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+---
+
+##  License
+
+Created for hackathon demonstration. All synthetic scenario data and rules configurations are provided for process guidance prototyping.

@@ -1,6 +1,35 @@
 import { VehicleCase, RoadmapStep, Document, Journey, Rule } from '@/types';
 
 /**
+ * Build a user-friendly case description without exposing null values
+ */
+function buildCaseDescription(vCase: VehicleCase): string {
+  const parts: string[] = [];
+  
+  // Start with the transfer type
+  parts.push('Interstate vehicle transfer case created');
+  
+  // Add vehicle info only if available
+  if (vCase.vehicleModel) {
+    parts.push(`for ${vCase.vehicleModel}`);
+  }
+  
+  // Add registration only if available
+  if (vCase.registrationNumber) {
+    parts.push(`(${vCase.registrationNumber})`);
+  }
+  
+  // Add route if both states are available
+  if (vCase.originState && vCase.destinationState) {
+    parts.push(`from ${vCase.originState} to ${vCase.destinationState}`);
+  } else if (vCase.destinationState) {
+    parts.push(`to ${vCase.destinationState}`);
+  }
+  
+  return parts.join(' ') + '.';
+}
+
+/**
  * Statutory Document Catalog — MVA 1988 & CMVR 1989
  * All document titles include clear, citizen-facing plain language explanations.
  */
@@ -370,7 +399,7 @@ export function evaluateRules(vCase: VehicleCase): Journey {
         caseId: vCase.id,
         timestamp: vCase.createdAt,
         title: 'Transfer Case Created',
-        description: `Case evaluated for ${vCase.vehicleModel} (${vCase.registrationNumber}) from ${vCase.originState} to ${vCase.destinationState}.`,
+        description: buildCaseDescription(vCase),
         type: 'info',
       },
     ],

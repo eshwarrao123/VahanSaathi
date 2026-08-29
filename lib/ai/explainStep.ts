@@ -1,4 +1,4 @@
-import { getOpenAIClient } from './client';
+import { getOpenAIClient, checkAndHandleQuotaError } from './client';
 import { UserRole } from '@/types';
 import { ExplainStepSchema } from './schemas';
 import { AI_MODEL, AI_TOKENS, AI_TEMPERATURE } from './config';
@@ -118,6 +118,7 @@ Explain ONLY this step based on the information provided above. Do not add requi
     serverStepCache.set(cacheKey, result);
     return result;
   } catch (error) {
+    checkAndHandleQuotaError(error);
     const latencyMs = Date.now() - startTime;
     const errMsg = error instanceof Error ? error.message : String(error);
     logAiCall({ moment: 'explain-step', model: AI_MODEL, latencyMs, inputChars: promptText.length, outputChars: 0, isFallback: true, success: false, error: errMsg });

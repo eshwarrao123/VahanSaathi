@@ -23,7 +23,7 @@ export interface AiCallRecord {
  * In production: could be extended to a metrics service.
  */
 export function logAiCall(record: AiCallRecord): void {
-  const status = record.success ? 'OK' : 'FAIL';
+  const status = record.success ? 'success=true' : 'success=false';
   const source = record.isFallback ? 'FALLBACK' : record.model;
 
   if (process.env.NODE_ENV === 'production') {
@@ -33,10 +33,9 @@ export function logAiCall(record: AiCallRecord): void {
         `${record.latencyMs}ms in=${record.inputChars}ch out=${record.outputChars}ch`
     );
   } else {
-    // Development: richer log
+    // Development: clear format for verification
     console.log(
-      `[AI Observability] moment=${record.moment} status=${status} source=${source} ` +
-        `latency=${record.latencyMs}ms inputChars=${record.inputChars} outputChars=${record.outputChars}` +
+      `[AI] moment=${record.moment} model=${source} ${status}` +
         (record.error ? ` error=${record.error}` : '')
     );
   }

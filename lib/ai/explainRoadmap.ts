@@ -1,4 +1,4 @@
-import { getOpenAIClient } from './client';
+import { getOpenAIClient, checkAndHandleQuotaError } from './client';
 import { VehicleCase, RoadmapStep } from '@/types';
 import { ExplainRoadmapSchema } from './schemas';
 import { AI_MODEL, AI_TOKENS, AI_TEMPERATURE } from './config';
@@ -101,6 +101,7 @@ Explain ONLY these verified steps. Do not add requirements beyond what is listed
       isFallback: false,
     };
   } catch (error) {
+    checkAndHandleQuotaError(error);
     const latencyMs = Date.now() - startTime;
     const errMsg = error instanceof Error ? error.message : String(error);
     logAiCall({ moment: 'explain-roadmap', model: AI_MODEL, latencyMs, inputChars: promptText.length, outputChars: 0, isFallback: true, success: false, error: errMsg });

@@ -1,4 +1,4 @@
-import { getOpenAIClient } from './client';
+import { getOpenAIClient, checkAndHandleQuotaError } from './client';
 import { interpretSituationText as fallbackInterpreter } from '@/lib/utils/interpretation';
 import { UserRole } from '@/types';
 import { InterpretSchema } from './schemas';
@@ -149,6 +149,7 @@ export async function interpretSituationAi(
         buildRawUnderstanding(originState, destinationState, validatedRole, vehicleModel),
     };
   } catch (error) {
+    checkAndHandleQuotaError(error);
     const latencyMs = Date.now() - startTime;
     const errMsg = error instanceof Error ? error.message : String(error);
     logAiCall({ moment: 'interpret', model: AI_MODEL, latencyMs, inputChars: safeText.length, outputChars: 0, isFallback: true, success: false, error: errMsg });

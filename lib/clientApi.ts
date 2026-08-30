@@ -39,6 +39,10 @@ export async function createJourneyApi(initialRole?: UserRole) {
 
 export async function getJourneyApi(journeyId: string) {
   const res = await fetch(`/api/journeys/${journeyId}`);
+  if (res.status === 404) {
+    clearStoredJourneyId();
+    return null;
+  }
   const json = await res.json();
 
   if (!res.ok || !json.success) {
@@ -76,6 +80,12 @@ export async function generateCaseApi(journeyId: string) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
   });
+
+  if (res.status === 404) {
+    clearStoredJourneyId();
+    const freshJourney = await createJourneyApi();
+    return generateCaseApi(freshJourney.id);
+  }
 
   const json = await res.json();
   if (!res.ok || !json.success) {

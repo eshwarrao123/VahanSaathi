@@ -12,12 +12,17 @@ export async function POST(
     return NextResponse.json({ success: true, data: result }, { status: 201 });
   } catch (error: unknown) {
     console.error('Error creating case from journey:', error);
+    const message = error instanceof Error ? error.message : String(error);
+    const isNotFound = message.includes('Journey not found');
+
     return NextResponse.json(
       {
         success: false,
-        error: "We couldn't generate your roadmap case at this moment. Please try again.",
+        error: isNotFound
+          ? 'Journey not found'
+          : "We couldn't generate your roadmap case at this moment. Please try again.",
       },
-      { status: 500 }
+      { status: isNotFound ? 404 : 500 }
     );
   }
 }

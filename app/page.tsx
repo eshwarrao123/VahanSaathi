@@ -136,7 +136,7 @@ export default function Home() {
         setIsLoading(true);
         try {
           const data = await getJourneyApi(storedId);
-          if (data) {
+          if (data && data.id) {
             setJourneyId(data.id);
             setCurrentScreen((data.currentScreen as ScreenType) || 'landing');
             setUserRole(data.userRole);
@@ -146,9 +146,14 @@ export default function Home() {
             if (data.journey?.case?.id) {
               setCaseId(data.caseId || data.journey.case.id);
             }
+          } else {
+            clearStoredJourneyId();
+            setJourneyId(null);
           }
         } catch (err) {
           console.warn('Session recovery error:', err);
+          clearStoredJourneyId();
+          setJourneyId(null);
         } finally {
           setIsLoading(false);
         }
@@ -162,9 +167,10 @@ export default function Home() {
   const syncScreenState = async (screen: ScreenType, payload: Record<string, unknown> = {}) => {
     setCurrentScreen(screen);
     setErrorMsg(null);
-    if (journeyId) {
+    const targetId = journeyId || getStoredJourneyId();
+    if (targetId) {
       try {
-        await updateJourneyApi(journeyId, { currentScreen: screen, ...payload });
+        await updateJourneyApi(targetId, { currentScreen: screen, ...payload });
       } catch (err: unknown) {
         console.warn('Failed to sync screen state:', err);
       }
@@ -195,11 +201,16 @@ export default function Home() {
 
   // Handlers
   const handleStartTransfer = async () => {
+    if (isLoading) return;
     setIsLoading(true);
     setErrorMsg(null);
     try {
-      const newJourney = await createJourneyApi();
-      setJourneyId(newJourney.id);
+      let activeId = journeyId || getStoredJourneyId();
+      if (!activeId) {
+        const newJourney = await createJourneyApi();
+        activeId = newJourney.id;
+        setJourneyId(newJourney.id);
+      }
       setCurrentScreen('choose-role');
     } catch (err: unknown) {
       console.error(err);
@@ -216,7 +227,7 @@ export default function Home() {
 
   // AI Moment 1: Natural-Language Situation Understanding
   const handleBuildPlan = async () => {
-    if (!situationText.trim()) return;
+    if (!situationText.trim() || isInterpretingAi) return;
 
     setIsInterpretingAi(true);
     setErrorMsg(null);
@@ -263,16 +274,18 @@ export default function Home() {
     const updatedAnswers = { ...answers, [currentQuestion.key]: value };
     setAnswers(updatedAnswers);
 
+    const activeId = journeyId || getStoredJourneyId();
+
     if (currentQuestionIndex < GUIDED_QUESTIONS.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
-      if (journeyId) {
-        updateJourneyApi(journeyId, { answers: updatedAnswers }).catch(() => { });
+      if (activeId) {
+        updateJourneyApi(activeId, { answers: updatedAnswers }).catch(() => { });
       }
     } else {
       setIsLoading(true);
       try {
-        if (journeyId) {
-          await updateJourneyApi(journeyId, {
+        if (activeId) {
+          await updateJourneyApi(activeId, {
             currentScreen: 'case-summary',
             answers: updatedAnswers,
           });
@@ -288,17 +301,22 @@ export default function Home() {
   };
 
   const handleShowRoadmap = async () => {
-    if (!journeyId) {
-      const newJ = await createJourneyApi(userRole || undefined);
-      setJourneyId(newJ.id);
-    }
-    const currentJId = journeyId || getStoredJourneyId();
-    if (!currentJId) return;
-
+    if (isLoading) return;
     setIsLoading(true);
     setErrorMsg(null);
     try {
-      const updatedData = await generateCaseApi(currentJId);
+      let activeJId = journeyId || getStoredJourneyId();
+      if (!activeJId) {
+        const newJ = await createJourneyApi(userRole || undefined);
+        activeJId = newJ.id;
+        setJourneyId(newJ.id);
+      }
+      if (!activeJId) throw new Error('Failed to acquire active journey session');
+
+      const updatedData = await generateCaseApi(activeJId);
+      if (updatedData.journey?.id) {
+        setJourneyId(updatedData.journey.id);
+      }
       setJourney(updatedData.journey);
       setCaseId(updatedData.caseId || updatedData.journey?.case?.id || '');
       setCurrentScreen('roadmap');

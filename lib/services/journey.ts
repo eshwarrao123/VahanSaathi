@@ -179,13 +179,15 @@ export async function createCaseFromJourney(journeyId: string) {
 
   // Delete old case if re-evaluating
   await prisma.case.deleteMany({
-    where: { journeyId },
+    where: { journeyId: journey.id },
   });
 
   // Create persisted case with nested roadmap, documents, and status events
   await prisma.case.create({
     data: {
-      journeyId,
+      journey: {
+        connect: { id: journey.id },
+      },
       caseNumber,
       title: vehicleCaseInput.title,
       role: vehicleCaseInput.role,

@@ -137,127 +137,134 @@ export async function getJourney(journeyId: string) {
  * Generates and persists a Case, evaluated RoadmapSteps, Documents, and StatusEvents.
  */
 export async function createCaseFromJourney(journeyId: string) {
-  const journey = await prisma.journey.findUnique({
-    where: { id: journeyId },
-  });
+  return prisma.$transaction(async (tx) => {
+    // 1. Transactional check for Journey existence
+    const journey = await tx.journey.findUnique({
+      where: { id: journeyId },
+    });
 
-  if (!journey) {
-    throw new Error(`Journey not found: ${journeyId}`);
-  }
+    if (!journey) {
+      throw new Error(`Journey not found: ${journeyId}`);
+    }
 
-  let answers: QuestionAnswers = {};
-  try {
-    answers = JSON.parse(journey.answersJson || '{}');
-  } catch {
-    answers = {};
-  }
+    let answers: QuestionAnswers = {};
+    try {
+      answers = JSON.parse(journey.answersJson || '{}');
+    } catch {
+      answers = {};
+    }
 
-  const interpreted = interpretSituationText(journey.situationText || '');
+    const interpreted = interpretSituationText(journey.situationText || '');
 
-  const vehicleCaseInput: VehicleCase = {
-    id: `case-${Date.now()}`,
-    title: 'Your Vehicle Transfer Guidance Plan',
-    role: (journey.userRole as UserRole) || interpreted.role || 'seller',
-    transaction: 'sale',
-    registrationNumber: interpreted.registrationNumber,
-    originState: interpreted.originState || 'TG',
-    destinationState: interpreted.destinationState || 'KA',
-    activeLoan: answers.activeLoan || false,
-    hasRC: answers.hasRC !== false,
-    saleCompleted: answers.saleCompleted !== false,
-    isLongTermRelocation: answers.isLongTermRelocation !== false,
-    sellerName: 'Synthetic Seller',
-    buyerName: 'Synthetic Buyer',
-    vehicleModel: interpreted.vehicleModel,
-    createdAt: new Date().toISOString(),
-  };
+    const vehicleCaseInput: VehicleCase = {
+      id: `case-${Date.now()}`,
+      title: 'Your Vehicle Transfer Guidance Plan',
+      role: (journey.userRole as UserRole) || interpreted.role || 'seller',
+      transaction: 'sale',
+      registrationNumber: interpreted.registrationNumber,
+      originState: interpreted.originState || 'TG',
+      destinationState: interpreted.destinationState || 'KA',
+      activeLoan: answers.activeLoan || false,
+      hasRC: answers.hasRC !== false,
+      saleCompleted: answers.saleCompleted !== false,
+      isLongTermRelocation: answers.isLongTermRelocation !== false,
+      sellerName: 'Synthetic Seller',
+      buyerName: 'Synthetic Buyer',
+      vehicleModel: interpreted.vehicleModel,
+      createdAt: new Date().toISOString(),
+    };
 
-  // Run deterministic rules evaluation
-  const evaluatedJourney = evaluateRules(vehicleCaseInput);
+    // Run deterministic rules evaluation
+    const evaluatedJourney = evaluateRules(vehicleCaseInput);
+    const caseNumber = `VS-DEMO-${Math.floor(1000 + Math.random() * 9000)}`;
 
-  const caseNumber = `VS-DEMO-${Math.floor(1000 + Math.random() * 9000)}`;
+    // 2. Delete old case if re-evaluating (transactional)
+    await tx.case.deleteMany({
+      where: { journeyId: journey.id },
+    });
 
-  // Delete old case if re-evaluating
-  await prisma.case.deleteMany({
-    where: { journeyId: journey.id },
-  });
-
-  // Create persisted case with nested roadmap, documents, and status events
-  await prisma.case.create({
-    data: {
-      journey: {
-        connect: { id: journey.id },
+    // 3. Create persisted case with nested roadmap, documents, and status events (transactional)
+    await tx.case.create({
+      data: {
+        journey: {
+          connect: { id: journey.id },
+        },
+        caseNumber,
+        title: vehicleCaseInput.title,
+        role: vehicleCaseInput.role,
+        transaction: vehicleCaseInput.transaction,
+        registrationNumber: vehicleCaseInput.registrationNumber,
+        originState: vehicleCaseInput.originState || 'TG',
+        destinationState: vehicleCaseInput.destinationState || 'KA',
+        activeLoan: vehicleCaseInput.activeLoan,
+        hasRC: vehicleCaseInput.hasRC,
+        saleCompleted: vehicleCaseInput.saleCompleted,
+        isLongTermRelocation: vehicleCaseInput.isLongTermRelocation !== false,
+        status: 'EVALUATED',
+        sellerName: vehicleCaseInput.sellerName,
+        buyerName: vehicleCaseInput.buyerName,
+        vehicleModel: vehicleCaseInput.vehicleModel,
+        roadmapSteps: {
+          create: evaluatedJourney.roadmap.map((step) => ({
+            stepNumber: step.stepNumber,
+            title: step.title,
+            description: step.description,
+            responsibility: step.responsibility,
+            status: step.status,
+            officialRtoAction: step.officialRtoAction,
+            legalBasis: step.legalBasis,
+            isConditional: step.isConditional || false,
+            conditionalReason: step.conditionalReason || null,
+            notesJson: JSON.stringify(step.notes || []),
+            estimatedDays: step.estimatedDays || null,
+          })),
+        },
+        documents: {
+          create: evaluatedJourney.allRequiredDocuments.map((doc) => ({
+            code: doc.code,
+            title: doc.title,
+            description: doc.description,
+            status: doc.status === 'required' ? 'NOT_READY' : doc.status.toUpperCase(),
+            isMandatory: doc.isMandatory,
+            issuedBy: doc.issuedBy || null,
+            legalBasis: doc.legalBasis || null,
+            isSynthetic: true,
+          })),
+        },
+        statusEvents: {
+          create: [
+            {
+              title: 'Transfer Case Created & Evaluated',
+              description: `Statutory roadmap generated for ${vehicleCaseInput.vehicleModel} (${vehicleCaseInput.registrationNumber}) from ${vehicleCaseInput.originState} to ${vehicleCaseInput.destinationState}.`,
+              type: 'info',
+              actor: 'SYSTEM',
+            },
+          ],
+        },
       },
-      caseNumber,
-      title: vehicleCaseInput.title,
-      role: vehicleCaseInput.role,
-      transaction: vehicleCaseInput.transaction,
-      registrationNumber: vehicleCaseInput.registrationNumber,
-      originState: vehicleCaseInput.originState || 'TG',
-      destinationState: vehicleCaseInput.destinationState || 'KA',
-      activeLoan: vehicleCaseInput.activeLoan,
-      hasRC: vehicleCaseInput.hasRC,
-      saleCompleted: vehicleCaseInput.saleCompleted,
-      isLongTermRelocation: vehicleCaseInput.isLongTermRelocation !== false,
-      status: 'EVALUATED',
-      sellerName: vehicleCaseInput.sellerName,
-      buyerName: vehicleCaseInput.buyerName,
-      vehicleModel: vehicleCaseInput.vehicleModel,
-      roadmapSteps: {
-        create: evaluatedJourney.roadmap.map((step) => ({
-          stepNumber: step.stepNumber,
-          title: step.title,
-          description: step.description,
-          responsibility: step.responsibility,
-          status: step.status,
-          officialRtoAction: step.officialRtoAction,
-          legalBasis: step.legalBasis,
-          isConditional: step.isConditional || false,
-          conditionalReason: step.conditionalReason || null,
-          notesJson: JSON.stringify(step.notes || []),
-          estimatedDays: step.estimatedDays || null,
-        })),
-      },
-      documents: {
-        create: evaluatedJourney.allRequiredDocuments.map((doc) => ({
-          code: doc.code,
-          title: doc.title,
-          description: doc.description,
-          status: doc.status === 'required' ? 'NOT_READY' : doc.status.toUpperCase(),
-          isMandatory: doc.isMandatory,
-          issuedBy: doc.issuedBy || null,
-          legalBasis: doc.legalBasis || null,
-          isSynthetic: true,
-        })),
-      },
-      statusEvents: {
-        create: [
-          {
-            title: 'Transfer Case Created & Evaluated',
-            description: `Statutory roadmap generated for ${vehicleCaseInput.vehicleModel} (${vehicleCaseInput.registrationNumber}) from ${vehicleCaseInput.originState} to ${vehicleCaseInput.destinationState}.`,
-            type: 'info',
-            actor: 'SYSTEM',
+    });
+
+    // 4. Update journey currentScreen (transactional)
+    const updated = await tx.journey.update({
+      where: { id: journey.id },
+      data: { currentScreen: 'roadmap' },
+      include: {
+        case: {
+          include: {
+            roadmapSteps: {
+              orderBy: { stepNumber: 'asc' },
+            },
+            documents: true,
+            statusEvents: {
+              orderBy: { timestamp: 'asc' },
+            },
           },
-        ],
+        },
       },
-    },
-    include: {
-      roadmapSteps: {
-        orderBy: { stepNumber: 'asc' },
-      },
-      documents: true,
-      statusEvents: {
-        orderBy: { timestamp: 'asc' },
-      },
-    },
-  });
+    });
 
-  await prisma.journey.update({
-    where: { id: journeyId },
-    data: { currentScreen: 'roadmap' },
+    return formatJourneyDTO(updated);
   });
-
-  return getJourney(journeyId);
 }
 
 /**
